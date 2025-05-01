@@ -42,7 +42,7 @@ function Upload({ setError }: UploadProps) {
       const formData = new FormData();
       formData.append('file', file);
       const uploadResponse = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/upload/ppt`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/upload/ppt`,
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -53,7 +53,7 @@ function Upload({ setError }: UploadProps) {
 
       // Step 2: Generate scenes by calling /api/scenes/generate
       const scenesResponse = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/scenes/generate?file_path=${encodeURIComponent(filePath)}`
+        `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/scenes/generate?file_path=${encodeURIComponent(filePath)}`
       );
       const scenes: Scene[] = scenesResponse.data.scenes;
       console.log(`Upload.tsx: Generated scenes for file ${filePath}`, scenes);
