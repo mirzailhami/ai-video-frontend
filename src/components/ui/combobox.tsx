@@ -19,15 +19,17 @@ import {
   PopoverTrigger,
 } from "./popover";
 
+// Extend ComboboxProps to include className
 interface ComboboxProps {
   options: { value: string; label: string }[];
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  className?: string; // Add className prop
 }
 
-export function Combobox({ options, value, onChange, placeholder, disabled }: ComboboxProps) {
+export function Combobox({ options, value, onChange, placeholder, disabled, className }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -37,7 +39,7 @@ export function Combobox({ options, value, onChange, placeholder, disabled }: Co
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-auto inline-flex items-center justify-between text-left"
+          className={cn("w-auto inline-flex items-center justify-between text-left", className)} // Apply className here
           disabled={disabled}
         >
           {value

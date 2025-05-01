@@ -520,12 +520,11 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
     }
   };
 
-  const handleGenerateVideo = async (title: string) => {
+  const handleGenerateVideo = async (title: string): Promise<void> => {
     setGenerationStatus('waiting');
     setGenerationProgress(0);
     setGenerationError('');
-    const startTime = Date.now();
-    let isMounted = true;
+    const isMounted = true;
 
     try {
       // Convert logoDataUrl to a File object
@@ -618,11 +617,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
       setGenerationProgress(0);
       console.error('Video generation error:', error);
     }
-
-    // Cleanup on unmount
-    return () => {
-      isMounted = false;
-    };
   };
 
   const handleTitleChange = (newTitle: string) => {

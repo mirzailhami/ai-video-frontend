@@ -1,12 +1,13 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    // ...
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    }
-    // ...
-  }
+      "@/*": ["./src/*"]
+    },
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "noEmit": false // Allow emission for tsc -b
+  },
+  "include": ["src"]
 }
