@@ -14,13 +14,6 @@ interface Voice {
   preview_audio: string;
 }
 
-interface Avatar {
-  avatar_id: string;
-  avatar_name: string;
-  gender: string;
-  preview_video_url: string;
-}
-
 interface HeyGenVideo {
   video_id: string;
   status: string;
@@ -32,10 +25,9 @@ interface HeyGenVideo {
 
 function App() {
   const [voices, setVoices] = useState<Voice[]>([]);
-  const [avatars, setAvatars] = useState<Avatar[]>([]);
-  const [heygenVideos, setHeygenVideos] = useState<HeyGenVideo[]>([]); // Add state for HeyGen videos
+  const [heygenVideos, setHeygenVideos] = useState<HeyGenVideo[]>([]);
   const [error, setError] = useState<string>('');
-  const hasFetched = useRef(false); // Track if API calls have been made
+  const hasFetched = useRef(false);
 
   const handleError = (message: string) => {
     setError(message);
@@ -44,7 +36,7 @@ function App() {
 
   useEffect(() => {
     if (hasFetched.current) {
-      return; // Skip if already fetched
+      return;
     }
     hasFetched.current = true;
 
@@ -59,20 +51,6 @@ function App() {
         setVoices(response.data.data.voices);
       } catch (err) {
         handleError('Failed to fetch voices: ' + (err as Error).message);
-      }
-    };
-
-    const fetchAvatars = async () => {
-      try {
-        const response = await axios.get<{ error: string | null; data: { avatars: Avatar[] } }>(
-          `${import.meta.env.VITE_API_URL}/api/video/avatars`
-        );
-        if (response.data.error) {
-          throw new Error(response.data.error);
-        }
-        setAvatars(response.data.data.avatars);
-      } catch (err) {
-        handleError('Failed to fetch avatars: ' + (err as Error).message);
       }
     };
 
@@ -96,8 +74,7 @@ function App() {
       }
     };
 
-    // Fetch all data in parallel
-    Promise.all([fetchVoices(), fetchAvatars(), fetchHeyGenVideos()]);
+    Promise.all([fetchVoices(), fetchHeyGenVideos()]);
   }, []);
 
   return (
@@ -118,8 +95,7 @@ function App() {
             element={
               <SceneEditor
                 voices={voices}
-                avatars={avatars}
-                heygenVideos={heygenVideos} // Pass heygenVideos as a prop
+                heygenVideos={heygenVideos}
                 setError={handleError}
               />
             }

@@ -35,13 +35,6 @@ interface Voice {
   preview_audio: string;
 }
 
-interface Avatar {
-  avatar_id: string;
-  avatar_name: string;
-  gender: string;
-  preview_video_url: string;
-}
-
 interface VideoDetails {
   generationStatus: 'idle' | 'waiting' | 'processing' | 'completed' | 'failed';
   generatedVideoUrl: string;
@@ -63,8 +56,7 @@ interface HeyGenVideo {
 
 interface SceneEditorProps {
   voices: Voice[];
-  avatars: Avatar[];
-  heygenVideos: HeyGenVideo[]; // Add heygenVideos as a prop
+  heygenVideos: HeyGenVideo[];
   setError: (message: string) => void;
 }
 
@@ -74,12 +66,7 @@ const mockVoices: Voice[] = [
   { voice_id: "voice3", name: "Carlos", gender: "Male", language: "Spanish", preview_audio: "https://example.com/carlos.mp3" },
 ];
 
-const mockAvatars: Avatar[] = [
-  { avatar_id: "avatar1", avatar_name: "Abigail (Upper Body)", gender: "Female", preview_video_url: "https://example.com/abigail.mp4" },
-  { avatar_id: "avatar2", avatar_name: "Ben (Full Body)", gender: "Male", preview_video_url: "https://example.com/ben.mp4" },
-];
-
-function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos, setError }: SceneEditorProps) {
+function SceneEditor({ voices = mockVoices, heygenVideos, setError }: SceneEditorProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [lastSaved, setLastSaved] = useState<string>('Just now');
@@ -89,7 +76,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
   const [voiceId, setVoiceId] = useState<string>('');
-  const [avatarId, setAvatarId] = useState<string>(avatars[0]?.avatar_id || '');
   const [selectedSceneIndex, setSelectedSceneIndex] = useState<number>(0);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
   const [generationStatus, setGenerationStatus] = useState<'idle' | 'waiting' | 'processing' | 'completed' | 'failed'>('idle');
@@ -100,17 +86,16 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
   const [generationError, setGenerationError] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [hasLoaded, setHasLoaded] = useState<boolean>(false);
-  const [heygenStatus, setHeygenStatus] = useState<string>(''); // Add HeyGen status
-  const [videoId, setVideoId] = useState<string | null>(null); // Track video_id for polling
-  const [shouldShowDialog, setShouldShowDialog] = useState<boolean>(true); // Track if dialog should be shown
-  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null); // Track selected video from HeyGen list
+  const [heygenStatus, setHeygenStatus] = useState<string>('');
+  const [videoId, setVideoId] = useState<string | null>(null);
+  const [shouldShowDialog, setShouldShowDialog] = useState<boolean>(true);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
 
-  // Debounced inputs and memoized data
   const [scriptInput, setScriptInput] = useState<string>('');
   const [promptInput, setPromptInput] = useState<string>('');
   const debouncedScript = useDebounce(scriptInput, 100);
   const debouncedPrompt = useDebounce(promptInput, 100);
-  const debouncedScenes = useDebounce(hasLoaded ? editedScenes : [], 1000); // Only debounce scenes after loading
+  const debouncedScenes = useDebounce(hasLoaded ? editedScenes : [], 1000);
 
   const videoDetails: VideoDetails = useMemo(() => ({
     generationStatus,
@@ -130,7 +115,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
     [voices, selectedLanguage]
   );
 
-  // Memoize Combobox options to prevent unnecessary re-renders
   const videoOptions = useMemo(
     () =>
       heygenVideos.map((video) => ({
@@ -140,21 +124,18 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
     [heygenVideos]
   );
 
-  // Set default voice when language changes
   useEffect(() => {
     if (availableVoices.length > 0) {
       setVoiceId(availableVoices[0].voice_id);
     }
   }, [availableVoices]);
 
-  // Set default selected video when heygenVideos changes
   useEffect(() => {
     if (heygenVideos.length > 0 && !selectedVideoId) {
       setSelectedVideoId(heygenVideos[0].video_id);
     }
   }, [heygenVideos, selectedVideoId]);
 
-  // Fetch video status function
   const fetchVideoStatus = useCallback(async (currentVideoId: string) => {
     try {
       const response = await axios.get<{
@@ -173,11 +154,10 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
       setGeneratedVideoUrl(video_url || '');
       setVideoDuration(duration || 0);
       setThumbnailUrl(thumbnail_url || '');
-      setGenerationProgress(status === 'completed' ? 100 : status === 'failed' ? 0 : 50); // Approximate progress
+      setGenerationProgress(status === 'completed' ? 100 : status === 'failed' ? 0 : 50);
 
-      // Calculate generation time if status is completed and created_at is available
       if (status === 'completed' && created_at) {
-        const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+        const currentTime = Math.floor(Date.now() / 1000);
         const generationDuration = currentTime - created_at;
         setGenerationTime(generationDuration);
       }
@@ -185,7 +165,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
       if (status === 'failed') {
         setGenerationError('Video generation failed');
       }
-      // Only open the dialog if shouldShowDialog is true
       if (shouldShowDialog) {
         setIsGenerateDialogOpen(true);
       }
@@ -201,7 +180,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
     }
   }, [shouldShowDialog]);
 
-  // Fetch video details for a specific video_id from backend
   const fetchVideoDetails = useCallback(async (videoId: string) => {
     try {
       const response = await axios.get<{
@@ -221,11 +199,13 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
       setVideoDuration(duration || 0);
       setThumbnailUrl(thumbnail_url || '');
       setGenerationProgress(status === 'completed' ? 100 : 0);
+
       if (status === 'completed' && created_at) {
         const currentTime = Math.floor(Date.now() / 1000);
         const generationDuration = currentTime - created_at;
         setGenerationTime(generationDuration);
       }
+
       if (status === 'failed') {
         setGenerationError('Video generation failed');
       }
@@ -236,7 +216,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
     }
   }, []);
 
-  // Load project data
   useEffect(() => {
     if (!id) {
       setError('Invalid project ID.');
@@ -248,7 +227,7 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
     if (data) {
       const parsedData = JSON.parse(data);
       console.log(`SceneEditor.tsx: Loaded project with ID ${id}`, parsedData);
-      const { scenes, title, logo_data_url, language, voice_id, avatar_id, last_saved, video_id, dialog_closed, video_details } = parsedData;
+      const { scenes, title, logo_data_url, language, voice_id, last_saved, video_id, dialog_closed, video_details } = parsedData;
       if (!scenes || scenes.length === 0) {
         setError('No scenes found for this project. Please upload a presentation again.');
         navigate('/');
@@ -259,7 +238,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
       setLogoDataUrl(logo_data_url || null);
       setSelectedLanguage(language || 'English');
       setVoiceId(voice_id || '');
-      setAvatarId(avatar_id || avatars[0]?.avatar_id || '');
       if (scenes && scenes.length > 0) {
         setScriptInput(scenes[0]?.script || '');
         setPromptInput(scenes[0]?.image_prompt || '');
@@ -268,7 +246,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
       setVideoId(video_id || null);
       setShouldShowDialog(dialog_closed !== true);
 
-      // Load persisted video details if available and no active generation
       if (video_details) {
         setGenerationStatus(video_details.generationStatus || 'idle');
         setGeneratedVideoUrl(video_details.generatedVideoUrl || '');
@@ -278,7 +255,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
         setHeygenStatus(video_details.heygenStatus || '');
         setGenerationProgress(video_details.generationProgress || 0);
 
-        // If video_details indicates the status is already "completed", clear video_id to prevent polling
         if (video_details.heygenStatus === 'completed' && video_id) {
           setVideoId(null);
           const updatedData = { ...parsedData, video_id: null };
@@ -295,55 +271,49 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
           });
       }
 
-      setHasLoaded(true); // Mark loading as complete
+      setHasLoaded(true);
     } else {
       setError('Project not found.');
       navigate('/');
     }
-  }, [id, navigate, setError, avatars]);
+  }, [id, navigate, setError]);
 
-  // Polling effect for video status when video_id exists
   useEffect(() => {
     if (!videoId || !hasLoaded) return;
 
-    // Initial fetch on load
     fetchVideoStatus(videoId);
 
-    // Set up polling every 60 seconds
     const interval = setInterval(async () => {
       const status = await fetchVideoStatus(videoId);
       if (status === 'completed' || status === 'failed') {
-        clearInterval(interval); // Stop polling if completed or failed
-        setVideoId(null); // Clear video_id to stop polling
+        clearInterval(interval);
+        setVideoId(null);
         setShouldShowDialog(true);
         if (id) {
           const data = localStorage.getItem(id);
           if (data) {
             const parsedData = JSON.parse(data);
-            parsedData.video_id = null; // Ensure video_id is cleared in localStorage
+            parsedData.video_id = null;
             parsedData.dialog_closed = false;
             parsedData.video_details = videoDetails;
             localStorage.setItem(id, JSON.stringify(parsedData));
           }
         }
       }
-    }, 60 * 1000); // Poll every 60 seconds
+    }, 60 * 1000);
 
-    // Cleanup on unmount
     return () => clearInterval(interval);
   }, [videoId, hasLoaded, fetchVideoStatus, id, videoDetails]);
 
-  // Auto-save functionality
   const debouncedTitle = useDebounce(videoTitle, 1000);
   const debouncedLogoDataUrl = useDebounce(logoDataUrl, 1000);
   const debouncedLanguage = useDebounce(selectedLanguage, 1000);
   const debouncedVoiceId = useDebounce(voiceId, 1000);
-  const debouncedAvatarId = useDebounce(avatarId, 1000);
   const debouncedVideoId = useDebounce(videoId, 1000);
   const debouncedShouldShowDialog = useDebounce(shouldShowDialog, 1000);
 
   useEffect(() => {
-    if (id && hasLoaded && debouncedScenes.length > 0) { // Only save if scenes are present
+    if (id && hasLoaded && debouncedScenes.length > 0) {
       const saveData = {
         id,
         title: debouncedTitle,
@@ -351,7 +321,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
         logo_data_url: debouncedLogoDataUrl,
         language: debouncedLanguage,
         voice_id: debouncedVoiceId,
-        avatar_id: debouncedAvatarId,
         video_id: debouncedVideoId,
         dialog_closed: !debouncedShouldShowDialog,
         video_details: debouncedVideoDetails,
@@ -361,9 +330,8 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
       localStorage.setItem(id, JSON.stringify(saveData));
       setLastSaved(new Date().toLocaleTimeString());
     }
-  }, [id, hasLoaded, debouncedScenes, debouncedTitle, debouncedLogoDataUrl, debouncedLanguage, debouncedVoiceId, debouncedAvatarId, debouncedVideoId, debouncedShouldShowDialog, debouncedVideoDetails]);
+  }, [id, hasLoaded, debouncedScenes, debouncedTitle, debouncedLogoDataUrl, debouncedLanguage, debouncedVoiceId, debouncedVideoId, debouncedShouldShowDialog, debouncedVideoDetails]);
 
-  // Update scenes with debounced script and prompt
   useEffect(() => {
     if (editedScenes.length > 0) {
       setEditedScenes((prevScenes) => {
@@ -375,7 +343,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
     }
   }, [debouncedScript, debouncedPrompt, selectedSceneIndex]);
 
-  // Handle logo change and convert to data URL
   const handleLogoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && !selectedFile.type.startsWith('image/')) {
@@ -395,7 +362,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
     }
   }, [setError]);
 
-  // Optimize scene selection
   const handleSelectScene = useCallback((index: number) => {
     setSelectedSceneIndex(index);
     setScriptInput(editedScenes[index]?.script || '');
@@ -415,16 +381,14 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
           { prompt: editedScenes[index].image_prompt }
         );
 
-        const newImagePath = `${response.data.image_path}?t=${Date.now()}`; // Add cache-busting query parameter
+        const newImagePath = `${response.data.image_path}?t=${Date.now()}`;
 
-        // Update the scene's image_path
         setEditedScenes((prevScenes) => {
           const newScenes = [...prevScenes];
           newScenes[index] = {
             ...newScenes[index],
             image_path: newImagePath,
           };
-          // Immediately save to localStorage to bypass debounce
           if (id && hasLoaded) {
             const saveData = {
               id,
@@ -433,7 +397,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
               logo_data_url: logoDataUrl,
               language: selectedLanguage,
               voice_id: voiceId,
-              avatar_id: avatarId,
               video_id: videoId,
               dialog_closed: !shouldShowDialog,
               video_details: videoDetails,
@@ -451,17 +414,12 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
         setError('Failed to regenerate image. Please try again.');
       }
     },
-    [id, hasLoaded, editedScenes, videoTitle, logoDataUrl, selectedLanguage, voiceId, avatarId, videoId, shouldShowDialog, videoDetails, setError]
+    [id, hasLoaded, editedScenes, videoTitle, logoDataUrl, selectedLanguage, voiceId, videoId, shouldShowDialog, videoDetails, setError]
   );
 
   const handleGenerateClick = () => {
-    // Validate required fields
     if (!voiceId) {
       setError('Please select a voice');
-      return;
-    }
-    if (!avatarId) {
-      setError('Please select an avatar');
       return;
     }
     if (!logoDataUrl) {
@@ -485,7 +443,7 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
       if (data) {
         const parsedData = JSON.parse(data);
         parsedData.dialog_closed = false;
-        parsedData.video_details = null; // Clear previous video details when starting a new generation
+        parsedData.video_details = null;
         parsedData.video_id = null;
         localStorage.setItem(id, JSON.stringify(parsedData));
       }
@@ -527,7 +485,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
     const isMounted = true;
 
     try {
-      // Convert logoDataUrl to a File object
       if (!logoDataUrl) {
         throw new Error('Logo is required');
       }
@@ -535,15 +492,12 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
       const blob = await response.blob();
       const logoFile = new File([blob], 'logo.png', { type: blob.type });
 
-      // Prepare form data for the initial video generation request
       const formData = new FormData();
       formData.append('scenes', JSON.stringify(editedScenes));
       formData.append('logo', logoFile);
       formData.append('voice_id', voiceId);
-      formData.append('avatar_id', avatarId);
       formData.append('title', title);
 
-      // Make a single POST request to start video generation
       const apiResponse = await axios.post<{ video_url: string; duration: number; thumbnail_url: string; status: string; video_id: string }>(
         `${import.meta.env.VITE_API_URL}/api/video/generate`,
         formData,
@@ -562,7 +516,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
 
       setVideoId(video_id);
 
-      // Poll the status endpoint until the video generation is complete
       while (isMounted && status !== 'completed' && status !== 'failed' && status !== 'error') {
         setHeygenStatus(status || 'pending');
         setGenerationStatus(status === 'pending' || status === 'waiting' ? 'waiting' : 'processing');
@@ -571,7 +524,7 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
           return newProgress > 90 ? 90 : newProgress;
         });
 
-        await new Promise(resolve => setTimeout(resolve, 3000)); // Poll every 3 seconds
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
         const pollResponse = await axios.get<{
           video_url: string;
@@ -590,9 +543,8 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
         thumbnail_url = updatedThumbnailUrl;
         status = updatedStatus;
 
-        // Calculate generation time if status is completed and created_at is available
         if (status === 'completed' && created_at) {
-          const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+          const currentTime = Math.floor(Date.now() / 1000);
           const generationDuration = currentTime - created_at;
           setGenerationTime(generationDuration);
         }
@@ -626,7 +578,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
   const handleDialogOpenChange = (open: boolean) => {
     setIsGenerateDialogOpen(open);
     if (!open) {
-      // User closed the dialog, prevent it from reopening automatically
       setShouldShowDialog(false);
       if (id) {
         const data = localStorage.getItem(id);
@@ -640,11 +591,9 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
   };
 
   const selectedVoice = availableVoices.find((v) => v.voice_id === voiceId);
-  const selectedAvatar = avatars.find((a) => a.avatar_id === avatarId);
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-[#f8f9fa]">
-      {/* Header */}
       <header className="sticky top-0 bg-white border-b z-50 flex justify-between items-center px-6 py-3 h-16">
         <div className="flex items-center space-x-4">
           <Button
@@ -693,18 +642,12 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
         </div>
       </header>
 
-      {/* Main Content - Wrapped in SidebarProvider */}
       <div className="flex flex-1 overflow-hidden">
         <SidebarProvider>
           <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 4rem)' }}>
-            {/* Sidebar */}
-            <Sidebar className="w-80 bg-white border-r z-20 flex flex-col" style={{
-              height: 'calc(100vh - 4rem)',
-              position: 'sticky',
-              top: '4rem'
-            }}>
+            <Sidebar className="w-80 bg-white border-r z-20 flex flex-col" style={{ height: 'calc(100vh - 4rem)', position: 'sticky', top: '4rem' }}>
               <SidebarContent className="p-4 overflow-y-auto flex-1">
-                <SidebarGroup className='space-y-4'>
+                <SidebarGroup className="space-y-4">
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Video Title</label>
@@ -784,36 +727,11 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
                         />
                       )}
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Avatar</label>
-                      <Combobox
-                        options={avatars.map((avatar) => ({
-                          value: avatar.avatar_id,
-                          label: avatar.avatar_name,
-                        }))}
-                        value={avatarId}
-                        onChange={setAvatarId}
-                        placeholder="Select avatar..."
-                        className="text-sm cursor-pointer"
-                      />
-                      {selectedAvatar?.preview_video_url && (
-                        <video
-                          src={selectedAvatar.preview_video_url}
-                          className="mt-2 w-full rounded-md cursor-pointer"
-                          autoPlay
-                          controls
-                          loop
-                          muted
-                        />
-                      )}
-                    </div>
                   </div>
                 </SidebarGroup>
               </SidebarContent>
             </Sidebar>
 
-            {/* Main Preview Area */}
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto p-6">
                 {editedScenes.length > 0 ? (
@@ -824,7 +742,7 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
                           src={editedScenes[selectedSceneIndex].image_path}
                           alt={`Scene ${selectedSceneIndex + 1}`}
                           className="absolute inset-0 w-full h-full object-cover"
-                          key={editedScenes[selectedSceneIndex].image_path} // Force re-render on URL change
+                          key={editedScenes[selectedSceneIndex].image_path}
                         />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400">
@@ -877,7 +795,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
                 )}
               </div>
 
-              {/* Timeline */}
               <div className="border-t bg-white p-3 min-h-[80px] max-h-[15vh] flex-shrink-0 z-10">
                 <div className="flex overflow-x-auto h-full items-center content-center justify-center gap-4">
                   {editedScenes.map((scene, index) => (
@@ -892,7 +809,7 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
                           src={scene.image_path}
                           alt={`Scene ${index + 1}`}
                           className="w-full h-full object-cover"
-                          key={scene.image_path} // Force re-render on URL change
+                          key={scene.image_path}
                         />
                       ) : (
                         <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
@@ -911,7 +828,6 @@ function SceneEditor({ voices = mockVoices, avatars = mockAvatars, heygenVideos,
         </SidebarProvider>
       </div>
 
-      {/* Video Generation Dialog */}
       <GenerateVideoDialog
         open={isGenerateDialogOpen}
         onOpenChange={handleDialogOpenChange}
